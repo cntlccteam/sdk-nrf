@@ -94,6 +94,10 @@ struct bt_mesh_light_ctrl_srv_cfg {
 	uint32_t fade_standby_manual;
 	/** State-wise light levels */
 	uint16_t light[LIGHT_CTRL_STATE_COUNT];
+	// Manual Override Time (TimeMillisecond with resolution 0.001)
+	uint32_t override_time;
+	// Indication if Manual Override Timer is enabled (Boolean)
+	uint8_t override_time_enabled;
 };
 
 /** Illumination regulator configuration */
@@ -146,6 +150,8 @@ struct bt_mesh_light_ctrl_srv {
 	struct sensor_value ambient_lux;
 	/** State timer */
 	struct k_delayed_work timer;
+	/** Manual override timer */
+	struct k_delayed_work manual_override_timer;
 
 #if CONFIG_BT_SETTINGS
 	/** Storage timer */
@@ -189,6 +195,10 @@ struct bt_mesh_light_ctrl_srv {
 	/** Scene entry */
 	struct bt_mesh_scene_entry scene;
 };
+
+void start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
+void stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
+bool is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv);
 
 /** @brief Turn the light on.
  *

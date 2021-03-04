@@ -471,6 +471,7 @@ static void prolong(struct bt_mesh_light_ctrl_srv *srv)
 
 static void ctrl_enable(struct bt_mesh_light_ctrl_srv *srv)
 {
+	stop_manual_override_timer(srv);
 	srv->lightness->ctrl = srv;
 	BT_DBG("Light Control Enabled");
 	transition_start(srv, LIGHT_CTRL_STATE_STANDBY, 0);
@@ -496,7 +497,7 @@ static void ctrl_disable(struct bt_mesh_light_ctrl_srv *srv)
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 	k_delayed_work_cancel(&srv->reg.timer);
 #endif
-
+	start_manual_override_timer(srv);
 	light_onoff_pub(srv, srv->state, true);
 }
 
@@ -565,10 +566,43 @@ static void reg_step(struct k_work *work)
 }
 #endif
 
+void start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
+{
+	BT_DBG("LC start_manual_override_timer");
+	if(srv->cfg.override_time_enabled) {
+	    k_delayed_work_submit(&srv->manual_override_timer, 
+		    K_MSEC(srv->cfg.override_time));
+	}
+}
+
+void stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
+{
+	BT_DBG("LC stop_manual_override_timer");
+	k_delayed_work_cancel(&srv->manual_override_timer);
+}
+
+bool is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv)
+{
+	if(k_delayed_work_remaining_get(&srv->manual_override_timer)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 /*******************************************************************************
  * Timeouts
  ******************************************************************************/
 
+static void manual_override_timeout(struct k_work *work)
+{
+	BT_DBG("LC manual_override_timeout");
+
+	struct bt_mesh_light_ctrl_srv *srv = CONTAINER_OF(
+		work, struct bt_mesh_light_ctrl_srv, manual_override_timer.work);
+
+	ctrl_enable(srv);
+}
 static void timeout(struct k_work *work)
 {
 	struct bt_mesh_light_ctrl_srv *srv =
@@ -608,8 +642,7 @@ static void timeout(struct k_work *work)
 			return;
 		}
 
-		uint32_t cooldown = MSEC_PER_SEC *
-				    CONFIG_BT_MESH_LIGHT_CTRL_SRV_TIME_MANUAL;
+		uint32_t cooldown = srv->cfg.override_time;
 
 		if (srv->fade.duration >= cooldown) {
 			atomic_clear_bit(&srv->flags, FLAG_MANUAL);
@@ -993,6 +1026,11 @@ static void handle_sensor_status(struct bt_mesh_model *mod,
 
 		/* Occupancy sensor */
 
+		if(id == BT_MESH_PROP_ID_PRESENCE_DETECTED && value.val1 > 0) {
+			if(is_manual_override_timer_running(srv)) {
+				start_manual_override_timer(srv);
+			}
+		}
 		/* OCC_MODE must be enabled for the occupancy sensors to be
 		 * able to turn on the light:
 		 */
@@ -1386,9 +1424,13 @@ static void scene_recall(struct bt_mesh_model *mod, const uint8_t data[],
 	srv->reg.cfg = scene->reg;
 #endif
 	if (scene->enabled) {
-		ctrl_enable(srv);
+		stop_manual_override_timer(srv);
+		srv->lightness->ctrl = srv;
+		turn_on(srv, transition, false);
+		reg_start(srv);
 	} else {
-		ctrl_disable(srv);
+		start_manual_override_timer(srv);
+		turn_off(srv, transition, false);
 	}
 }
 
@@ -1431,6 +1473,7 @@ static int light_ctrl_srv_init(struct bt_mesh_model *mod)
 
 	k_delayed_work_init(&srv->timer, timeout);
 	k_delayed_work_init(&srv->action_delay, delayed_action_timeout);
+	k_delayed_work_init(&srv->manual_override_timer, manual_override_timeout);
 
 #if CONFIG_BT_SETTINGS
 	k_delayed_work_init(&srv->store_timer, store_timeout);
