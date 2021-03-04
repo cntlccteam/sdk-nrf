@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
 #include <stdlib.h>
@@ -471,7 +471,7 @@ static void prolong(struct bt_mesh_light_ctrl_srv *srv)
 
 static void ctrl_enable(struct bt_mesh_light_ctrl_srv *srv)
 {
-	stop_manual_override_timer(srv);
+	bt_mesh_light_ctrl_srv_stop_manual_override_timer(srv);
 	srv->lightness->ctrl = srv;
 	BT_DBG("Light Control Enabled");
 	transition_start(srv, LIGHT_CTRL_STATE_STANDBY, 0);
@@ -497,7 +497,7 @@ static void ctrl_disable(struct bt_mesh_light_ctrl_srv *srv)
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 	k_delayed_work_cancel(&srv->reg.timer);
 #endif
-	start_manual_override_timer(srv);
+	bt_mesh_light_ctrl_srv_start_manual_override_timer(srv);
 	light_onoff_pub(srv, srv->state, true);
 }
 
@@ -566,28 +566,24 @@ static void reg_step(struct k_work *work)
 }
 #endif
 
-void start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
+void bt_mesh_light_ctrl_srv_start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
 {
-	BT_DBG("LC start_manual_override_timer");
-	if(srv->cfg.override_time_enabled) {
-	    k_delayed_work_submit(&srv->manual_override_timer, 
+	BT_DBG("LC %s", __func__);
+	if (srv->cfg.override_time_enabled) {
+	    k_delayed_work_submit(&srv->manual_override_timer,
 		    K_MSEC(srv->cfg.override_time));
 	}
 }
 
-void stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
+void bt_mesh_light_ctrl_srv_stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv)
 {
-	BT_DBG("LC stop_manual_override_timer");
+	BT_DBG("LC %s", __func__);
 	k_delayed_work_cancel(&srv->manual_override_timer);
 }
 
-bool is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv)
+bool bt_mesh_light_ctrl_srv_is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv)
 {
-	if(k_delayed_work_remaining_get(&srv->manual_override_timer)) {
-		return true;
-	} else {
-		return false;
-	}
+	return k_delayed_work_pending(&srv->manual_override_timer);
 }
 
 /*******************************************************************************
@@ -1026,9 +1022,9 @@ static void handle_sensor_status(struct bt_mesh_model *mod,
 
 		/* Occupancy sensor */
 
-		if(id == BT_MESH_PROP_ID_PRESENCE_DETECTED && value.val1 > 0) {
-			if(is_manual_override_timer_running(srv)) {
-				start_manual_override_timer(srv);
+		if (id == BT_MESH_PROP_ID_PRESENCE_DETECTED && value.val1 > 0) {
+			if (bt_mesh_light_ctrl_srv_is_manual_override_timer_running(srv)) {
+				bt_mesh_light_ctrl_srv_start_manual_override_timer(srv);
 			}
 		}
 		/* OCC_MODE must be enabled for the occupancy sensors to be
@@ -1424,12 +1420,12 @@ static void scene_recall(struct bt_mesh_model *mod, const uint8_t data[],
 	srv->reg.cfg = scene->reg;
 #endif
 	if (scene->enabled) {
-		stop_manual_override_timer(srv);
+		bt_mesh_light_ctrl_srv_stop_manual_override_timer(srv);
 		srv->lightness->ctrl = srv;
 		turn_on(srv, transition, false);
 		reg_start(srv);
 	} else {
-		start_manual_override_timer(srv);
+		bt_mesh_light_ctrl_srv_start_manual_override_timer(srv);
 		turn_off(srv, transition, false);
 	}
 }

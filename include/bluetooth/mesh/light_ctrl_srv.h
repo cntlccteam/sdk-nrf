@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
 /** @file
@@ -196,9 +196,9 @@ struct bt_mesh_light_ctrl_srv {
 	struct bt_mesh_scene_entry scene;
 };
 
-void start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
-void stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
-bool is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv);
+void bt_mesh_light_ctrl_srv_start_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
+void bt_mesh_light_ctrl_srv_stop_manual_override_timer(struct bt_mesh_light_ctrl_srv *srv);
+bool bt_mesh_light_ctrl_srv_is_manual_override_timer_running(struct bt_mesh_light_ctrl_srv *srv);
 
 /** @brief Turn the light on.
  *
