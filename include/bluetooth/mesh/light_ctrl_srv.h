@@ -129,6 +129,8 @@ struct bt_mesh_light_ctrl_srv_reg {
  *  Should be initialized with @ref BT_MESH_LIGHT_CTRL_SRV_INIT.
  */
 struct bt_mesh_light_ctrl_srv {
+	// Manual Override Time in seconds
+	uint16_t override_time;
 	/** Current control state */
 	enum bt_mesh_light_ctrl_srv_state state;
 	/** Internal flag field */

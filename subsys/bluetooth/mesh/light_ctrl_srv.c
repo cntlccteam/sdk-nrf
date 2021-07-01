@@ -92,10 +92,10 @@ static bool is_enabled(const struct bt_mesh_light_ctrl_srv *srv)
 
 static void schedule_resume_timer(struct bt_mesh_light_ctrl_srv *srv)
 {
-	if (CONFIG_BT_MESH_LIGHT_CTRL_SRV_RESUME_DELAY) {
+	if (srv->override_time) {
 		k_work_reschedule(
 			&srv->timer,
-			K_SECONDS(CONFIG_BT_MESH_LIGHT_CTRL_SRV_RESUME_DELAY));
+			K_SECONDS(srv->override_time));
 		atomic_set_bit(&srv->flags, FLAG_RESUME_TIMER);
 	}
 }
@@ -589,7 +589,7 @@ static void timeout(struct k_work *work)
 		CONTAINER_OF(dwork, struct bt_mesh_light_ctrl_srv, timer);
 
 	if (!is_enabled(srv)) {
-		if (CONFIG_BT_MESH_LIGHT_CTRL_SRV_RESUME_DELAY &&
+		if (srv->override_time &&
 		    atomic_test_and_clear_bit(&srv->flags, FLAG_RESUME_TIMER)) {
 			BT_DBG("Resuming LC server");
 			ctrl_enable(srv);
