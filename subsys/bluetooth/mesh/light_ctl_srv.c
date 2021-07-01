@@ -94,7 +94,7 @@ static void ctl_set(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 	temp.transition = light.transition;
 
 	lightness_srv_disable_control(&srv->lightness_srv);
-	lightness_srv_change_lvl(&srv->lightness_srv, ctx, &light, &light_rsp, true);
+	lightness_srv_change_lvl(&srv->lightness_srv, ctx, &light, &light_rsp, true, true);
 	bt_mesh_light_temp_srv_set(&srv->temp_srv, ctx, &temp, &temp_rsp);
 
 	status.current_temp = temp_rsp.current.temp;
@@ -386,7 +386,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 		.transition = transition,
 	};
 
-	lightness_srv_change_lvl(&srv->lightness_srv, NULL, &light, &dummy_light_status, false);
+	lightness_srv_change_lvl(&srv->lightness_srv, NULL, &light, &dummy_light_status, false, true);
 }
 
 static void scene_recall_complete(struct bt_mesh_model *model)

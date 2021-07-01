@@ -182,7 +182,7 @@ static void light_set(struct bt_mesh_light_ctrl_srv *srv, uint16_t lvl,
 	};
 	struct bt_mesh_lightness_status dummy;
 
-	lightness_srv_change_lvl(srv->lightness, NULL, &set, &dummy, true);
+	lightness_srv_change_lvl(srv->lightness, NULL, &set, &dummy, true, false);
 }
 
 static uint32_t remaining_fade_time(struct bt_mesh_light_ctrl_srv *srv)
@@ -1471,7 +1471,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 
 		ctrl_disable(srv);
 		schedule_resume_timer(srv);
-		lightness_srv_change_lvl(srv->lightness, NULL, &set, &status, true);
+		lightness_srv_change_lvl(srv->lightness, NULL, &set, &status, true, true);
 	}
 }
 
